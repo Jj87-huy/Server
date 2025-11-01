@@ -1,7 +1,7 @@
 const https = require("https");
 
 // URL tới JSON raw trên GitHub (thay link của bạn)
-const RAW_JSON_URL = "https://raw.githubusercontent.com/username/repo/main/data.json";
+const RAW_JSON_URL = "https://raw.githubusercontent.com/Jj87-huy/Server/main/DATA.json";
 
 let cachedData = null;
 let lastFetch = 0;
