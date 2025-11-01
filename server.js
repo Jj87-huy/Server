@@ -126,11 +126,10 @@ async function tryRequest(prompt, retry = true) {
 // ===========================
 // 🧠 API /chat
 // ===========================
-const https = require("https");
 
 // 🧠 JSONBin lưu dữ liệu AI học được
-const JSONBIN_LEARNING_URL = "https://api.jsonbin.io/v3/b/6723e8c1ad19ca34a89f1234";
-const JSONBIN_KEY = "6905b8dc43b1c97be9903e33";
+const JSONBIN_LEARNING_URL = "https://api.jsonbin.io/v3/b/6905b011d0ea881f40cb2e9a";
+const JSONBIN_KEY = "$2a$10$vhf2CES/NRLb3ZiPwObFj.WZDvm4LtswVLvwKOdR5wBtulZNBiMPi";
 
 // 🪄 Hàm lưu dữ liệu mới vào JSONBin (POST / PUT)
 async function saveToJSONBin(keyword, content) {
