@@ -137,101 +137,70 @@ async function fetchCurrentData() {
     const url = new URL(`${JSONBIN_LEARNING_URL}/latest`);
     const options = {
       hostname: url.hostname,
-      path: url.pathname,
-      headers: { "X-Master-Key": JSONBIN_KEY }
+      path: url.pathname + url.search,
+      headers: { "X-Master-Key": JSONBIN_KEY },
     };
 
-    https.get(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try {
-          const json = JSON.parse(data);
-          resolve(json.record || {}); // Nếu bin trống thì trả về {}
-        } catch (err) {
-          console.error("[saveToJSONBin]❌ Lỗi parse JSON:", err);
-          resolve({});
-        }
-      });
-    }).on("error", reject);
-  });
-}
-
-// 🪄 Lưu dữ liệu mới mà không ghi đè bin cũ
-// 🪄 Lưu dữ liệu mới mà không ghi đè bin cũ
-async function saveToJSONBin(keyword, content) {
-  try {
-    // Đọc dữ liệu cũ
-    const oldData = await fetchCurrentData();
-
-    // ✅ Ép kiểu quet luôn là mảng
-    if (!Array.isArray(oldData.quet)) {
-      if (oldData.quet && typeof oldData.quet === "object") {
-        // Nếu là object cũ (ví dụ: { "keyword": {...} }) → chuyển thành mảng
-        oldData.quet = Object.values(oldData.quet);
-      } else {
-        oldData.quet = [];
-      }
-    }
-
-    // Tạo mục mới
-    const newEntry = {
-      keyword,
-      bot_reply: content,
-      time: new Date().toLocaleString("vi-VN"),
-    };
-
-    // Tìm hoặc thêm mới
-    const existing = oldData.quet.find((x) => x.keyword === keyword);
-    if (existing) {
-      existing.bot_reply = content;
-      existing.time = newEntry.time;
-    } else {
-      oldData.quet.push(newEntry);
-    }
-
-    // PUT cập nhật lại toàn bộ
-    const url = new URL(JSONBIN_LEARNING_URL);
-    const options = {
-      method: "PUT",
-      hostname: url.hostname,
-      path: url.pathname,
-      headers: {
-        "Content-Type": "application/json",
-        "X-Master-Key": JSONBIN_KEY,
-      },
-    };
-
-    const body = JSON.stringify(oldData);
-
-    return new Promise((resolve, reject) => {
-      const req = https.request(options, (res) => {
+    https
+      .get(options, (res) => {
         let data = "";
         res.on("data", (chunk) => (data += chunk));
         res.on("end", () => {
           try {
             const json = JSON.parse(data);
-            console.log(`[JSONBin]✅ Đã lưu / cập nhật chủ đề "${keyword}"`);
-            resolve(json);
+            resolve(json.record || {}); // Nếu bin trống thì trả về {}
           } catch (err) {
-            console.error("[JSONBin]⚠️ Lỗi parse PUT:", err);
-            reject(err);
+            console.error("[fetchCurrentData]❌ Lỗi parse JSON:", err);
+            resolve({});
           }
         });
-      });
+      })
+      .on("error", reject);
+  });
+}
 
-      req.on("error", (err) => {
-        console.error("[JSONBin]❌ Lỗi khi PUT:", err);
-        reject(err);
-      });
+// 🪄 Lưu hoặc cập nhật dữ liệu vào JSONBin
+async function saveToJSONBin(keyword, content) {
+  // Bước 1️⃣: Đọc dữ liệu hiện tại
+  const oldData = await fetchCurrentData();
 
-      req.write(body);
-      req.end();
+  // Bước 2️⃣: Thêm hoặc cập nhật keyword mới
+  oldData[keyword] = {
+    bot_reply: content,
+    time: new Date().toLocaleString("vi-VN"),
+  };
+
+  // Bước 3️⃣: PUT dữ liệu mới lên JSONBin
+  const body = JSON.stringify(oldData);
+  const url = new URL(JSONBIN_LEARNING_URL);
+
+  const options = {
+    hostname: url.hostname,
+    path: url.pathname,
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": JSONBIN_KEY,
+      "Content-Length": Buffer.byteLength(body),
+    },
+  };
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch {
+          resolve(data);
+        }
+      });
     });
-  } catch (err) {
-    console.error("[JSONBin]⚠️ Lỗi khi lưu:", err);
-    throw err;
-  }
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
 }
 
 app.post("/chat", async (req, res) => {
