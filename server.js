@@ -158,22 +158,30 @@ async function fetchCurrentData() {
 }
 
 // 🪄 Lưu dữ liệu mới mà không ghi đè bin cũ
+// 🪄 Lưu dữ liệu mới mà không ghi đè bin cũ
 async function saveToJSONBin(keyword, content) {
   try {
     // Đọc dữ liệu cũ
     const oldData = await fetchCurrentData();
 
-    // Chuẩn bị mục mới
+    // ✅ Ép kiểu quet luôn là mảng
+    if (!Array.isArray(oldData.quet)) {
+      if (oldData.quet && typeof oldData.quet === "object") {
+        // Nếu là object cũ (ví dụ: { "keyword": {...} }) → chuyển thành mảng
+        oldData.quet = Object.values(oldData.quet);
+      } else {
+        oldData.quet = [];
+      }
+    }
+
+    // Tạo mục mới
     const newEntry = {
       keyword,
       bot_reply: content,
       time: new Date().toLocaleString("vi-VN"),
     };
 
-    // Nếu chưa có mảng "quet" thì tạo mới
-    if (!oldData.quet) oldData.quet = [];
-
-    // Kiểm tra trùng keyword
+    // Tìm hoặc thêm mới
     const existing = oldData.quet.find((x) => x.keyword === keyword);
     if (existing) {
       existing.bot_reply = content;
