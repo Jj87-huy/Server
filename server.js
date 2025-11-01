@@ -73,7 +73,6 @@ const MODULE_URLS = {
   analyzeText: "https://raw.githubusercontent.com/Jj87-huy/Server/main/Analyze.js",
   translateText: "https://raw.githubusercontent.com/Jj87-huy/Server/main/translate-text.js",
   matchFile: "https://raw.githubusercontent.com/Jj87-huy/Server/main/match-file.js",
-  historyModule: "https://raw.githubusercontent.com/Jj87-huy/Server/main/history.js",
   apiRequest: "https://raw.githubusercontent.com/Jj87-huy/Server/main/api-requets.js",
   utils: "https://raw.githubusercontent.com/Jj87-huy/Server/main/utils.js"
 };
@@ -91,8 +90,6 @@ let analyzeText, translateText, matchFile, historyModule, apiRequest, utils;
   try { matchFile = await loadRemoteModule(MODULE_URLS.matchFile); console.log("[GITHUB]✅ match-file.js loaded"); }
   catch { console.warn("[GITHUB]⚠️ Fallback match-file.js"); matchFile = { getAllTextFiles, findMatchingFile }; }
 
-  try { historyModule = await loadRemoteModule(MODULE_URLS.historyModule); console.log("[GITHUB]✅ history.js loaded"); }
-  catch { console.warn("[GITHUB]⚠️ Fallback history.js"); historyModule = { listHistoryFiles: () => [], readHistoryFile: () => [] }; }
 
   try { apiRequest = await loadRemoteModule(MODULE_URLS.apiRequest); console.log("[GITHUB]✅ api-request.js loaded"); }
   catch { console.warn("[GITHUB]⚠️ Fallback api-request.js"); apiRequest = { tryRequest }; }
@@ -133,19 +130,10 @@ let currentHistoryFile = path.join(HISTORY_DIR, "default.json");
 
 app.post("/chat", async (req, res) => {
   const userMessage = req.body.message?.trim();
-  const historyFile = req.body.historyFile;
 
   if (!userMessage) return res.json({ file: null, content: "Bạn chưa nhập gì 😅" });
 
-  if (historyFile && fs.existsSync(path.join(HISTORY_DIR, historyFile))) {
-    currentHistoryFile = path.join(HISTORY_DIR, historyFile);
-  } else if (currentHistoryFile.endsWith("default.json")) {
-    const baseName = utils.sanitizeFileName(userMessage.slice(0, 50));
-    currentHistoryFile = path.join(HISTORY_DIR, `${baseName} chat.json`);
-  }
-
   try {
-    utils.saveChat(currentHistoryFile, "user", userMessage);
 
     if (utils.isQuestion(userMessage)) {
       const mainKeyword = await analyzeText(model, userMessage, tryRequest);
@@ -157,25 +145,21 @@ app.post("/chat", async (req, res) => {
         const replyPrompt = `Người dùng hỏi: "${userMessage}". File: "${path.basename(matchedFile)}". Nội dung: ${content.slice(0, 1000)}. Hãy trả lời ngắn gọn, thân thiện (1-2 câu).`;
         const summary = await tryRequest(replyPrompt);
         const fullReply = `${content}`;
-        utils.saveChat(currentHistoryFile, "bot", fullReply, mainKeyword, matchedFile);
-        return res.json({ file: path.basename(matchedFile), keyword: mainKeyword, content: fullReply, historyFile: path.basename(currentHistoryFile) });
+        return res.json({ file: path.basename(matchedFile), keyword: mainKeyword, content: fullReply });
       }
 
       const noMatchPrompt = `Người dùng hỏi: "${userMessage}". Từ khóa: "${mainKeyword}". Không có tài liệu tương ứng. Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy(Ngoại trừ tên, ngày, tháng, năm, giờ, phút, giây. Tên thì là LBot).`;
       const noMatch = await tryRequest(noMatchPrompt);
-      utils.saveChat(currentHistoryFile, "bot", noMatch, mainKeyword);
-      return res.json({ file: null, keyword: mainKeyword, content: noMatch, historyFile: path.basename(currentHistoryFile) });
+      return res.json({ file: null, keyword: mainKeyword, content: noMatch });
     }
 
     const chatPrompt = `Người dùng nói: "${userMessage}". Hãy phản hồi thân thiện, vui vẻ, dễ hiểu (1-2 câu tiếng Việt).`;
     const reply = await tryRequest(chatPrompt);
-    utils.saveChat(currentHistoryFile, "bot", reply);
-    return res.json({ file: null, content: reply, historyFile: path.basename(currentHistoryFile) });
+    return res.json({ file: null, content: reply });
 
   } catch (err) {
     console.error("[SERVER ERR]⚠️ Lỗi xử lý:", err);
     const msg = "⚠️ Đã xảy ra lỗi khi xử lý yêu cầu.";
-    utils.saveChat(currentHistoryFile, "bot", msg);
     res.status(500).json({ file: null, content: msg });
   }
 });
