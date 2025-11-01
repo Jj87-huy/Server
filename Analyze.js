@@ -10,7 +10,7 @@ module.exports = async function analyzeText(model, text, tryRequest) {
   const prompt = `
 Phân tích câu hỏi tiếng Việt sau: "${text}"
 → Xác định nội dung chính hoặc khái niệm cốt lõi (1-3 danh từ).
-→ Nếu là thuật ngữ kỹ thuật (IT, AI, khoa học...), dịch sang tiếng Anh.
+→ Nếu là thuật ngữ kỹ thuật (Máy tính, sửa chữa máy tính, láp ráp cài đặt máy tính,...), dịch sang tiếng Anh.
 → Không giải thích, chỉ trả về cụm từ duy nhất (viết thường, không dấu ngoặc).
   `;
 
