@@ -126,68 +126,97 @@ async function tryRequest(prompt, retry = true) {
 // ===========================
 // 🧠 API /chat
 // ===========================
-let currentHistoryFile = path.join(HISTORY_DIR, "default.json");
+const https = require("https");
+
+// 🧠 JSONBin lưu dữ liệu AI học được
+const JSONBIN_LEARNING_URL = "https://api.jsonbin.io/v3/b/6723e8c1ad19ca34a89f1234";
+const JSONBIN_KEY = "6905b8dc43b1c97be9903e33";
+
+// 🪄 Hàm lưu dữ liệu mới vào JSONBin (POST / PUT)
+async function saveToJSONBin(keyword, content) {
+  const body = JSON.stringify({
+    [keyword]: {
+      description: content,
+      timestamp: new Date().toLocaleString("vi-VN")
+    }
+  });
+
+  const options = {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": JSONBIN_KEY
+    }
+  };
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(JSONBIN_LEARNING_URL, options, res => {
+      let data = "";
+      res.on("data", chunk => (data += chunk));
+      res.on("end", () => resolve(JSON.parse(data)));
+    });
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
 
 app.post("/chat", async (req, res) => {
   const userMessage = req.body.message?.trim();
   if (!userMessage) return res.json({ file: null, content: "Bạn chưa nhập gì 😅" });
 
   try {
-    // 🧠 Nếu là câu hỏi
     if (utils.isQuestion(userMessage)) {
       const mainKeyword = await analyzeText(model, userMessage, tryRequest);
       console.log(`🎯 Từ khóa chính: ${mainKeyword}`);
 
-      // 📡 Gọi matchFile để đọc JSON raw trên GitHub
+      // 📡 Gọi matchFile (đọc từ JSONBin hoặc GitHub)
       const matchedData = await matchFile.findMatchingFile(mainKeyword);
 
+      // ✅ Có dữ liệu → hiển thị
       if (matchedData && matchedData.data) {
         const { key, data } = matchedData;
         const { description, image, video, timestamp } = data;
-      
-        // 🔧 Tạo mảng nội dung linh hoạt (chỉ thêm khi có)
-        const replyParts = `📖 ${description || "Không có nội dung."}`;
-      
-        if (image && image.trim() !== "") replyParts.push(`🖼️ Hình ảnh: ${image}`);
-        if (video && video.trim() !== "") replyParts.push(`🎬 Video: ${video}`);
-      
-        const reply = replyParts.join("\n");
-      
-        return res.json({ keyword: key, content: reply });
+
+        const replyParts = [`${description || "Không có nội dung."}`];
+        if (image && image.trim() !== "") replyParts.push(`${image}`);
+        if (video && video.trim() !== "") replyParts.push(`${video}`);
+
+        return res.json({ keyword: key, content: replyParts.join("\n") });
       }
 
-      // ❌ Không tìm thấy dữ liệu → tạo phản hồi lịch sự
-      const now = new Date();
-      const formattedTime = now.toLocaleString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
+      // ❌ Không tìm thấy → hỏi AI và lưu lại
+      const noMatchPrompt = `Người dùng hỏi: "${userMessage}". 
+Không có dữ liệu trong hệ thống. 
+Hãy trả lời ngắn gọn, lịch sự, dễ hiểu (1-3 câu, tiếng Việt).`;
+      const aiResponse = await tryRequest(noMatchPrompt);
 
-      const noMatchPrompt = `Người dùng hỏi: "${userMessage}". Từ khóa: "${mainKeyword}". Không có tài liệu tương ứng. Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy.`;
-      const noMatch = await tryRequest(noMatchPrompt);
+      // ✍️ Lưu phản hồi vào JSONBin học tập
+      try {
+        await saveToJSONBin(mainKeyword, aiResponse);
+        console.log(`📥 Đã lưu chủ đề mới vào JSONBin: ${mainKeyword}`);
+      } catch (saveErr) {
+        console.error("⚠️ Không thể lưu vào JSONBin:", saveErr.message);
+      }
 
       return res.json({
         file: null,
         keyword: mainKeyword,
-        content: noMatch,
+        content: aiResponse + "\n\n💾 (Đã lưu chủ đề mới vào hệ thống)",
       });
     }
 
-    // 💬 Trường hợp trò chuyện bình thường
-    const chatPrompt = `Người dùng nói: "${userMessage}". Hãy phản hồi thân thiện, vui vẻ, dễ hiểu (1-2 câu tiếng Việt).`;
+    // 💬 Nếu chỉ trò chuyện
+    const chatPrompt = `Người dùng nói: "${userMessage}". 
+Hãy phản hồi thân thiện, vui vẻ (1-2 câu tiếng Việt).`;
     const reply = await tryRequest(chatPrompt);
     return res.json({ file: null, content: reply });
 
   } catch (err) {
-    console.error("[SERVER ERR]⚠️ Lỗi xử lý:", err);
+    console.error("[SERVER ERR]⚠️", err);
     res.status(500).json({ file: null, content: "⚠️ Đã xảy ra lỗi khi xử lý yêu cầu." });
   }
 });
-
 
 // ===========================
 // 🚀 Start server
