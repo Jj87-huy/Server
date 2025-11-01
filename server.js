@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const https = require("https");
 const vm = require("vm");
+const { URL } = require("url"); // ✅ Thêm dòng này
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 dotenv.config();
@@ -59,7 +60,7 @@ async function loadRemoteModule(url) {
       res.on("end", () => {
         try {
           const script = new vm.Script(data, { filename: "remote-module.js" });
-          const sandbox = { module: {}, require, console };
+          const sandbox = { module: {}, require, console, URL }; // ✅ Cho vào sandbox
           script.runInNewContext(sandbox);
           resolve(sandbox.module.exports);
         } catch (err) { reject(err); }
