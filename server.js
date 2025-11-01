@@ -62,12 +62,12 @@ async function loadRemoteModule(url) {
 
 // GitHub URLs
 const MODULE_URLS = {
-  analyzeText: "https://raw.githubusercontent.com/Jj87-huy/Server/refs/heads/main/Analyze.js",
-  translateText: "https://raw.githubusercontent.com/Jj87-huy/Server/refs/heads/main/translate-text.js",
-  matchFile: "https://raw.githubusercontent.com/Jj87-huy/Server/refs/heads/main/match-file.js",
-  historyModule: "https://raw.githubusercontent.com/Jj87-huy/Server/refs/heads/main/history.js",
-  apiRequest: "https://raw.githubusercontent.com/Jj87-huy/Server/refs/heads/main/api-requets.js",
-  utils: "https://raw.githubusercontent.com/Jj87-huy/Server/refs/heads/main/utils.js"
+  analyzeText: "https://raw.githubusercontent.com/Jj87-huy/Server/main/Analyze.js",
+  translateText: "https://raw.githubusercontent.com/Jj87-huy/Server/main/translate-text.js",
+  matchFile: "https://raw.githubusercontent.com/Jj87-huy/Server/main/match-file.js",
+  historyModule: "https://raw.githubusercontent.com/Jj87-huy/Server/main/history.js",
+  apiRequest: "https://raw.githubusercontent.com/Jj87-huy/Server/main/api-requets.js",
+  utils: "https://raw.githubusercontent.com/Jj87-huy/Server/main/utils.js"
 };
 
 let analyzeText, translateText, matchFile, historyModule, apiRequest, utils;
@@ -146,25 +146,14 @@ app.post("/chat", async (req, res) => {
       const matchedFile = matchFile.findMatchingFile(mainKeyword);
       if (matchedFile && fs.existsSync(matchedFile)) {
         const content = fs.readFileSync(matchedFile, "utf8");
-        const replyPrompt = `
-Người dùng hỏi: "${userMessage}"
-File: "${path.basename(matchedFile)}"
-Nội dung:
-${content.slice(0, 1000)}
-Hãy trả lời ngắn gọn, thân thiện (1-2 câu).
-        `;
+        const replyPrompt = `Người dùng hỏi: "${userMessage}". File: "${path.basename(matchedFile)}". Nội dung: ${content.slice(0, 1000)}. Hãy trả lời ngắn gọn, thân thiện (1-2 câu).`;
         const summary = await tryRequest(replyPrompt);
         const fullReply = `${content}`;
         utils.saveChat(currentHistoryFile, "bot", fullReply, mainKeyword, matchedFile);
         return res.json({ file: path.basename(matchedFile), keyword: mainKeyword, content: fullReply, historyFile: path.basename(currentHistoryFile) });
       }
 
-      const noMatchPrompt = `
-Người dùng hỏi: "${userMessage}".
-Từ khóa: "${mainKeyword}".
-Không có tài liệu tương ứng.
-Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy.
-      `;
+      const noMatchPrompt = `Người dùng hỏi: "${userMessage}". Từ khóa: "${mainKeyword}". Không có tài liệu tương ứng. Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy.`;
       const noMatch = await tryRequest(noMatchPrompt);
       utils.saveChat(currentHistoryFile, "bot", noMatch, mainKeyword);
       return res.json({ file: null, keyword: mainKeyword, content: noMatch, historyFile: path.basename(currentHistoryFile) });
@@ -180,33 +169,6 @@ Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương
     const msg = "⚠️ Đã xảy ra lỗi khi xử lý yêu cầu.";
     utils.saveChat(currentHistoryFile, "bot", msg);
     res.status(500).json({ file: null, content: msg });
-  }
-});
-
-// ===========================
-// 📜 API: Chat List & History
-// ===========================
-app.get("/history/list", (req, res) => {
-  try {
-    const files = fs.readdirSync(HISTORY_DIR)
-      .filter(f => f.endsWith(".json"))
-      .map(f => ({ name: f, time: fs.statSync(path.join(HISTORY_DIR, f)).mtime }))
-      .sort((a, b) => b.time - a.time);
-    res.json({ success: true, files });
-  } catch {
-    res.json({ success: false, files: [] });
-  }
-});
-
-app.get("/history/:fileName", (req, res) => {
-  const file = path.join(HISTORY_DIR, req.params.fileName);
-  if (!fs.existsSync(file)) return res.json({ success: false, history: [] });
-
-  try {
-    const history = JSON.parse(fs.readFileSync(file, "utf8"));
-    res.json({ success: true, history });
-  } catch {
-    res.json({ success: false, history: [] });
   }
 });
 
