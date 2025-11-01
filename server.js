@@ -210,7 +210,7 @@ app.post("/chat", async (req, res) => {
   try {
     if (utils.isQuestion(userMessage)) {
       const mainKeyword = await analyzeText(model, userMessage, tryRequest);
-      console.log(`🎯 Từ khóa chính: ${mainKeyword}`);
+      console.log(`[SERVER /chat]🎯 Từ khóa chính: ${mainKeyword}`);
 
       // 📡 Gọi matchFile (đọc từ JSONBin hoặc GitHub)
       const matchedData = await matchFile.findMatchingFile(mainKeyword);
@@ -230,21 +230,21 @@ app.post("/chat", async (req, res) => {
       // ❌ Không tìm thấy → hỏi AI và lưu lại
       const noMatchPrompt = `Người dùng hỏi: "${userMessage}". 
 Không có dữ liệu trong hệ thống. 
-Hãy trả lời ngắn gọn, lịch sự, dễ hiểu (1-3 câu, tiếng Việt).`;
+Hãy trả lời ngắn gọn, không chào hỏi, lịch sự, dễ hiểu (1-3 câu, tiếng Việt).`;
       const aiResponse = await tryRequest(noMatchPrompt);
 
       // ✍️ Lưu phản hồi vào JSONBin học tập
       try {
         await saveToJSONBin(mainKeyword, aiResponse);
-        console.log(`📥 Đã lưu chủ đề mới vào JSONBin: ${mainKeyword}`);
+        console.log(`[JSONBIN.io]📥 Đã lưu chủ đề mới: ${mainKeyword}`);
       } catch (saveErr) {
-        console.error("⚠️ Không thể lưu vào JSONBin:", saveErr.message);
+        console.error("[JSONBIN.io]⚠️ Không thể lưu:", saveErr.message);
       }
 
       return res.json({
         file: null,
         keyword: mainKeyword,
-        content: aiResponse + "\n\n💾 (Đã lưu chủ đề mới vào hệ thống)",
+        content: aiResponse + "\n Đã gửi yêu cầu cập nhật dữ liệu",
       });
     }
 
