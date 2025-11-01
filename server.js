@@ -130,39 +130,64 @@ let currentHistoryFile = path.join(HISTORY_DIR, "default.json");
 
 app.post("/chat", async (req, res) => {
   const userMessage = req.body.message?.trim();
-
   if (!userMessage) return res.json({ file: null, content: "Bạn chưa nhập gì 😅" });
 
   try {
-
+    // 🧠 Nếu là câu hỏi
     if (utils.isQuestion(userMessage)) {
       const mainKeyword = await analyzeText(model, userMessage, tryRequest);
       console.log(`🎯 Từ khóa chính: ${mainKeyword}`);
 
-      const matchedFile = matchFile.findMatchingFile(mainKeyword);
-      if (matchedFile && fs.existsSync(matchedFile)) {
-        const content = fs.readFileSync(matchedFile, "utf8");
-        const replyPrompt = `Người dùng hỏi: "${userMessage}". File: "${path.basename(matchedFile)}". Nội dung: ${content.slice(0, 1000)}. Hãy trả lời ngắn gọn, thân thiện (1-2 câu).`;
-        const summary = await tryRequest(replyPrompt);
-        const fullReply = `${content}`;
-        return res.json({ file: path.basename(matchedFile), keyword: mainKeyword, content: fullReply });
+      // 📡 Gọi matchFile để đọc JSON raw trên GitHub
+      const matchedData = await matchFile.findMatchingFile(mainKeyword);
+
+      if (matchedData && matchedData.data) {
+        const { key, data } = matchedData;
+        const { description, image, video, timestamp } = data;
+      
+        // 🔧 Tạo mảng nội dung linh hoạt (chỉ thêm khi có)
+        const replyParts = `📖 ${description || "Không có nội dung."}`;
+      
+        if (image && image.trim() !== "") replyParts.push(`🖼️ Hình ảnh: ${image}`);
+        if (video && video.trim() !== "") replyParts.push(`🎬 Video: ${video}`);
+      
+        const reply = replyParts.join("\n");
+      
+        return res.json({ keyword: key, content: reply });
       }
 
-      const noMatchPrompt = `Người dùng hỏi: "${userMessage}". Từ khóa: "${mainKeyword}". Không có tài liệu tương ứng. Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy(Ngoại trừ tên(LBot), thời gian(lấy ngày tháng năm, giờ phút giây thực).).`;
+      // ❌ Không tìm thấy dữ liệu → tạo phản hồi lịch sự
+      const now = new Date();
+      const formattedTime = now.toLocaleString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+
+      const noMatchPrompt = `Người dùng hỏi: "${userMessage}". Từ khóa: "${mainKeyword}". Không có tài liệu tương ứng. Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy. Ghi rõ thời gian (${formattedTime}) và tên là LBot.`;
       const noMatch = await tryRequest(noMatchPrompt);
-      return res.json({ file: null, keyword: mainKeyword, content: noMatch });
+
+      return res.json({
+        file: null,
+        keyword: mainKeyword,
+        content: noMatch,
+      });
     }
 
+    // 💬 Trường hợp trò chuyện bình thường
     const chatPrompt = `Người dùng nói: "${userMessage}". Hãy phản hồi thân thiện, vui vẻ, dễ hiểu (1-2 câu tiếng Việt).`;
     const reply = await tryRequest(chatPrompt);
     return res.json({ file: null, content: reply });
 
   } catch (err) {
     console.error("[SERVER ERR]⚠️ Lỗi xử lý:", err);
-    const msg = "⚠️ Đã xảy ra lỗi khi xử lý yêu cầu.";
-    res.status(500).json({ file: null, content: msg });
+    res.status(500).json({ file: null, content: "⚠️ Đã xảy ra lỗi khi xử lý yêu cầu." });
   }
 });
+
 
 // ===========================
 // 🚀 Start server
