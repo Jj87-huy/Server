@@ -1,34 +1,56 @@
-const fs = require("fs");
-const path = require("path");
+const https = require("https");
 
-const DATA_PATH = "./data";
+// URL tới JSON raw trên GitHub (thay link của bạn)
+const RAW_JSON_URL = "https://raw.githubusercontent.com/username/repo/main/data.json";
 
-function getAllTextFiles(dir = DATA_PATH, basePath = DATA_PATH) {
-  let results = [];
-  if (!fs.existsSync(dir)) return results;
+let cachedData = null;
+let lastFetch = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 phút cache
 
-  for (const file of fs.readdirSync(dir)) {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
+// Hàm tải dữ liệu JSON từ GitHub raw
+async function fetchRemoteJSON() {
+  const now = Date.now();
+  if (cachedData && now - lastFetch < CACHE_DURATION) return cachedData;
 
-    if (stat.isDirectory()) {
-      results = results.concat(getAllTextFiles(filePath, basePath));
-    } else if (file.endsWith(".txt")) {
-      results.push(path.relative(basePath, filePath));
-    }
-  }
-  return results;
+  return new Promise((resolve, reject) => {
+    https.get(RAW_JSON_URL, res => {
+      let data = "";
+      res.on("data", chunk => (data += chunk));
+      res.on("end", () => {
+        try {
+          const json = JSON.parse(data);
+          cachedData = json;
+          lastFetch = now;
+          resolve(json);
+        } catch (err) {
+          console.error("[match-file]❌ Lỗi parse JSON:", err);
+          reject(err);
+        }
+      });
+    }).on("error", err => {
+      console.error("[match-file]⚠️ Lỗi tải GitHub raw:", err);
+      reject(err);
+    });
+  });
 }
 
-function findMatchingFile(keyword) {
+// Hàm tìm file (giờ là key trong JSON)
+async function findMatchingFile(keyword) {
   if (!keyword) return null;
-  const files = getAllTextFiles();
+  const jsonData = await fetchRemoteJSON();
   const msg = keyword.toLowerCase();
 
-  for (const file of files) {
-    const name = path.basename(file, ".txt").toLowerCase();
-    if (name === msg || name.includes(msg) || msg.includes(name)) {
-      return path.join(DATA_PATH, file);
+  for (const key of Object.keys(jsonData)) {
+    if (
+      key.toLowerCase() === msg ||
+      key.toLowerCase().includes(msg) ||
+      msg.includes(key.toLowerCase())
+    ) {
+      // Trả về đối tượng JSON khớp
+      return {
+        key,
+        data: jsonData[key]
+      };
     }
   }
   return null;
