@@ -15,6 +15,14 @@ app.use(bodyParser.json());
 let modul = process.env.MODULE;
 let PORT = process.env.PORT;
 let HOST = process.env.HOST || "0.0.0.0";
+
+const cors = require("cors");
+app.use(cors({
+  origin: ["https://kbot-ai.name.vn", "http://localhost:3000"],
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"],
+}));
+
 // ===========================
 // ⚙️ Gemini API Key Management
 // ===========================
