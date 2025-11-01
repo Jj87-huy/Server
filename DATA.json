@@ -1,6 +1,7 @@
 {
-    "name":"",
-    "description":"",
-    "image":"",
-    "video":""
+    "name":{
+        "description":"",
+        "image":"",
+        "video":""
+    }
 }
