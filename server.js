@@ -148,7 +148,7 @@ app.post("/chat", async (req, res) => {
         return res.json({ file: path.basename(matchedFile), keyword: mainKeyword, content: fullReply });
       }
 
-      const noMatchPrompt = `Người dùng hỏi: "${userMessage}". Từ khóa: "${mainKeyword}". Không có tài liệu tương ứng. Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy(Ngoại trừ tên(LBot), thời gian(ngày tháng năm, giờ phút giây).).`;
+      const noMatchPrompt = `Người dùng hỏi: "${userMessage}". Từ khóa: "${mainKeyword}". Không có tài liệu tương ứng. Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy(Ngoại trừ tên(LBot), lấy thời gian thực(ngày tháng năm, giờ phút giây).).`;
       const noMatch = await tryRequest(noMatchPrompt);
       return res.json({ file: null, keyword: mainKeyword, content: noMatch });
     }
