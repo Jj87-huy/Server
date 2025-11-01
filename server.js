@@ -129,15 +129,16 @@ async function tryRequest(prompt, retry = true) {
 // ===========================
 
 // 🧠 JSONBin lưu dữ liệu AI học được
-const JSONBIN_LEARNING_URL = "https://api.jsonbin.io/v3/b/6905b011d0ea881f40cb2e9a";
+const JSONBIN_LEARNING_URL = "https://api.jsonbin.io/v3/b/6905b8dc43b1c97be9903e33";
 const JSONBIN_KEY = "$2a$10$vhf2CES/NRLb3ZiPwObFj.WZDvm4LtswVLvwKOdR5wBtulZNBiMPi";
 
 // 🪄 Hàm lưu dữ liệu mới vào JSONBin (POST / PUT)
 async function saveToJSONBin(keyword, content) {
   const body = JSON.stringify({
-    [keyword]: {
-      description: content,
-      timestamp: new Date().toLocaleString("vi-VN")
+    quet: {
+      keyword: keyword,
+      bot_reply: content,
+      time: new Date().toLocaleString("vi-VN")
     }
   });
 
