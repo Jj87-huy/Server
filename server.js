@@ -161,7 +161,7 @@ app.post("/chat", async (req, res) => {
         return res.json({ file: path.basename(matchedFile), keyword: mainKeyword, content: fullReply, historyFile: path.basename(currentHistoryFile) });
       }
 
-      const noMatchPrompt = `Người dùng hỏi: "${userMessage}". Từ khóa: "${mainKeyword}". Không có tài liệu tương ứng. Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy.`;
+      const noMatchPrompt = `Người dùng hỏi: "${userMessage}". Từ khóa: "${mainKeyword}". Không có tài liệu tương ứng. Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy(Ngoại trừ tên, ngày, tháng, năm, giờ, phút, giây. Tên thì là LBot).`;
       const noMatch = await tryRequest(noMatchPrompt);
       utils.saveChat(currentHistoryFile, "bot", noMatch, mainKeyword);
       return res.json({ file: null, keyword: mainKeyword, content: noMatch, historyFile: path.basename(currentHistoryFile) });
