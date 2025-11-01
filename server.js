@@ -167,7 +167,7 @@ app.post("/chat", async (req, res) => {
         second: "2-digit",
       });
 
-      const noMatchPrompt = `Người dùng hỏi: "${userMessage}". Từ khóa: "${mainKeyword}". Không có tài liệu tương ứng. Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy. Ghi rõ thời gian (${formattedTime}) và tên là LBot.`;
+      const noMatchPrompt = `Người dùng hỏi: "${userMessage}". Từ khóa: "${mainKeyword}". Không có tài liệu tương ứng. Hãy trả lời lịch sự rằng chủ đề này không nằm trong chương trình giảng dạy.`;
       const noMatch = await tryRequest(noMatchPrompt);
 
       return res.json({
