@@ -229,6 +229,7 @@ app.post("/chat", async (req, res) => {
 
       // ❌ Không tìm thấy → hỏi AI và lưu lại
       const noMatchPrompt = `Người dùng hỏi: "${userMessage}". 
+Trong câu hỏi "${userMessage}" nếu có hỏi từ là "ai, tên" thì trả lời là "Tôi tên là LBot".
 Không có dữ liệu trong hệ thống. 
 Hãy trả lời ngắn gọn, không chào hỏi, lịch sự, dễ hiểu (1-3 câu, tiếng Việt).`;
       const aiResponse = await tryRequest(noMatchPrompt);
