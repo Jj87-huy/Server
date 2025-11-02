@@ -8,7 +8,6 @@
  */
 module.exports = async function analyzeText(model, text, tryRequest) {
   const prompt = `
-Trong câu hỏi "${text}" nếu có hỏi từ là "ai, tên" thì trả lời là "Tôi tên là LBot" và không phân tích câu hỏi.
 Phân tích câu hỏi tiếng Việt sau: "${text}"
 → Xác định nội dung chính hoặc khái niệm cốt lõi (1-3 danh từ).
 → Nếu là thuật ngữ kỹ thuật (Máy tính, sửa chữa máy tính, láp ráp cài đặt máy tính,...), dịch sang tiếng Anh.
