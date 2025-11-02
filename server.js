@@ -244,7 +244,7 @@ Hãy trả lời ngắn gọn, không chào hỏi, lịch sự, dễ hiểu (1-3
       return res.json({
         file: null,
         keyword: mainKeyword,
-        content: aiResponse + "\n Đã gửi yêu cầu cập nhật dữ liệu",
+        content: aiResponse,
       });
     }
 
